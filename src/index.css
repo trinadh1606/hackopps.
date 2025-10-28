@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light mode - warm and accessible */
+    --background: 40 20% 97%;
+    --foreground: 220 40% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 40% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 40% 15%;
+    --primary: 200 100% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 25 95% 53%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 40 20% 90%;
+    --muted-foreground: 220 20% 40%;
+    --accent: 150 60% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 85%;
+    --input: 220 20% 85%;
+    --ring: 200 100% 40%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Dark mode - improved contrast */
+    --background: 220 40% 10%;
+    --foreground: 40 20% 95%;
+    --card: 220 35% 14%;
+    --card-foreground: 40 20% 95%;
+    --popover: 220 35% 14%;
+    --popover-foreground: 40 20% 95%;
+    --primary: 200 100% 50%;
+    --primary-foreground: 220 40% 10%;
+    --secondary: 25 95% 60%;
+    --secondary-foreground: 220 40% 10%;
+    --muted: 220 30% 20%;
+    --muted-foreground: 40 15% 70%;
+    --accent: 150 60% 50%;
+    --accent-foreground: 220 40% 10%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 30% 25%;
+    --input: 220 30% 25%;
+    --ring: 200 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    line-height: 1.6;
+  }
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .animate-bounce {
+    animation: bounce 1s infinite;
+  }
+  
+  .delay-100 {
+    animation-delay: 0.1s;
+  }
+  
+  .delay-200 {
+    animation-delay: 0.2s;
+  }
+  
+  /* Notification flash for DEAF users */
+  .notification-flash {
+    animation: flash 0.5s ease-in-out;
+  }
+  
+  @keyframes flash {
+    0%, 100% { 
+      box-shadow: none;
+    }
+    50% { 
+      box-shadow: 0 0 30px 10px hsl(var(--primary));
+    }
+  }
+  
+  /* Smooth transitions */
+  * {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  
+  button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  button:active {
+    transform: scale(0.98);
+  }
+}
