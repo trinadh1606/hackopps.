@@ -81,9 +81,30 @@ export const VoiceFirstComposer = ({
       setIsListening(false);
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
       setIsListening(false);
-      toast.error('Speech recognition error. Please try again.');
+      
+      // Provide specific error messages based on error type
+      switch (event.error) {
+        case 'not-allowed':
+          toast.error('Microphone permission denied. Please allow microphone access in your browser settings.');
+          break;
+        case 'no-speech':
+          toast.error('No speech detected. Please try again.');
+          break;
+        case 'audio-capture':
+          toast.error('No microphone found. Please connect a microphone.');
+          break;
+        case 'network':
+          toast.error('Network error. Please check your connection.');
+          break;
+        case 'aborted':
+          // User stopped, don't show error
+          break;
+        default:
+          toast.error(`Speech recognition error: ${event.error}. Please try again.`);
+      }
     };
 
     recognition.onend = () => {

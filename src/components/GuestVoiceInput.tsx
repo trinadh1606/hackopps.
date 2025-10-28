@@ -49,6 +49,29 @@ export const GuestVoiceInput = ({ onSendMessage, disabled }: GuestVoiceInputProp
       recognitionInstance.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
+        
+        // Announce error to user
+        if ('speechSynthesis' in window) {
+          let errorMessage = 'Error occurred';
+          switch (event.error) {
+            case 'not-allowed':
+              errorMessage = 'Microphone permission denied. Please allow access.';
+              break;
+            case 'no-speech':
+              errorMessage = 'No speech detected. Please try again.';
+              break;
+            case 'audio-capture':
+              errorMessage = 'No microphone found.';
+              break;
+            case 'network':
+              errorMessage = 'Network error. Please check connection.';
+              break;
+            default:
+              errorMessage = `Error: ${event.error}`;
+          }
+          const announcement = new SpeechSynthesisUtterance(errorMessage);
+          window.speechSynthesis.speak(announcement);
+        }
       };
 
       recognitionInstance.onend = () => {

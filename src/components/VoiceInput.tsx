@@ -72,12 +72,47 @@ export const VoiceInput = ({ onTranscript, disabled }: VoiceInputProps) => {
 
     recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
-      toast({
-        title: 'Error',
-        description: 'Speech recognition failed. Please try again.',
-        variant: 'destructive',
-      });
       setIsRecording(false);
+      
+      // Provide specific error messages
+      switch (event.error) {
+        case 'not-allowed':
+          toast({
+            title: 'Permission Denied',
+            description: 'Please allow microphone access in your browser settings.',
+            variant: 'destructive',
+          });
+          break;
+        case 'no-speech':
+          toast({
+            title: 'No Speech Detected',
+            description: 'Please try speaking again.',
+          });
+          break;
+        case 'audio-capture':
+          toast({
+            title: 'No Microphone',
+            description: 'Please connect a microphone and try again.',
+            variant: 'destructive',
+          });
+          break;
+        case 'network':
+          toast({
+            title: 'Network Error',
+            description: 'Please check your connection and try again.',
+            variant: 'destructive',
+          });
+          break;
+        case 'aborted':
+          // User stopped, don't show error
+          break;
+        default:
+          toast({
+            title: 'Error',
+            description: `Speech recognition error: ${event.error}`,
+            variant: 'destructive',
+          });
+      }
     };
 
     recognition.onend = async () => {
