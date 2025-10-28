@@ -8,6 +8,8 @@ import { HapticPlayer } from './HapticPlayer';
 import { MessagePlayer } from './MessagePlayer';
 import { useEffect } from 'react';
 import { playMultimodalCue, MULTIMODAL_CUES } from '@/lib/multimodalFeedback';
+import { canHearAudio, shouldUseTTS, shouldUseHaptics } from '@/lib/modalityRouter';
+import { getHapticForMessage } from '@/lib/hapticSentiment';
 
 interface MessageBubbleProps {
   message: Message;
@@ -27,6 +29,11 @@ export const MessageBubble = ({
   const abilityProfile = currentUserProfile.ability_profile.profile;
 
   const handlePlayTTS = () => {
+    // Block TTS for DEAF users - they cannot hear
+    if (!canHearAudio(abilityProfile)) {
+      return;
+    }
+    
     if (message.text && 'speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(message.text);
       speechSynthesis.speak(utterance);
@@ -69,8 +76,8 @@ export const MessageBubble = ({
           </p>
         )}
 
-        {/* TTS Button for BLIND users (not BLIND_MUTE) */}
-        {!isSent && abilityProfile.includes('BLIND') && !abilityProfile.includes('MUTE') && message.text && (
+        {/* TTS Button - Only for users who can HEAR (BLIND, not DEAF) */}
+        {!isSent && shouldUseTTS(abilityProfile) && message.text && (
           <Button
             variant="ghost"
             size="sm"
@@ -82,30 +89,15 @@ export const MessageBubble = ({
           </Button>
         )}
 
-        {/* Full Message Player for BLIND_MUTE users */}
-        {!isSent && abilityProfile === 'BLIND_MUTE' && message.text && (
-          <MessagePlayer
-            text={message.text}
-            senderName={senderProfile?.display_name}
-            timestamp={message.created_at}
-            priority={message.priority}
-            audioEnabled={true}
-            hapticEnabled={true}
-            ttsOptions={{
-              rate: 1.0,
-              pitch: 1.0,
-              volume: 1.0,
-              announceSender: true,
-              announceTimestamp: true,
-            }}
-          />
-        )}
-
-        {/* Haptic Player for DEAF_BLIND users */}
-        {!isSent && abilityProfile === 'DEAF_BLIND' && message.haptics_pattern && (
+        {/* Haptic Player for DEAF_BLIND users - with fallback pattern generation */}
+        {!isSent && (abilityProfile === 'DEAF_BLIND' || abilityProfile === 'DEAF_BLIND_MUTE') && message.text && (
           <div className="mt-2">
             <HapticPlayer 
-              pattern={{ sequence: Array.isArray(message.haptics_pattern) ? message.haptics_pattern : [] }}
+              pattern={
+                message.haptics_pattern && Array.isArray(message.haptics_pattern)
+                  ? { sequence: message.haptics_pattern }
+                  : getHapticForMessage(message.text, message.priority || 'normal')
+              }
             />
           </div>
         )}

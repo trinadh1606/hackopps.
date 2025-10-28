@@ -4,6 +4,7 @@ import { Message } from '@/types/chat';
 import { AbilityProfile } from '@/types/abilities';
 import { getHapticForMessage } from '@/lib/hapticSentiment';
 import { playHapticPattern } from '@/lib/haptics';
+import { canHearAudio, shouldUseTTS } from '@/lib/modalityRouter';
 
 export const useAIResponse = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -47,16 +48,17 @@ export const useAIResponse = () => {
 
       // Auto-deliver AI response based on user abilities
       if (userProfile === 'DEAF_BLIND' || userProfile === 'DEAF_BLIND_MUTE') {
-        // For deaf-blind users: use haptic feedback and vibrations
+        // For deaf-blind users: use haptic feedback and vibrations ONLY
         const hapticPattern = getHapticForMessage(data.text, 'normal');
         await playHapticPattern(hapticPattern, 1.0);
-      } else if (userProfile.includes('BLIND')) {
-        // For blind users: use voice
+      } else if (shouldUseTTS(userProfile)) {
+        // For blind users who can hear: use voice (NOT for DEAF_BLIND)
         const utterance = new SpeechSynthesisUtterance(data.text);
         utterance.rate = 1.0;
         utterance.volume = 1.0;
         window.speechSynthesis.speak(utterance);
       }
+      // DEAF users get no audio output - they see visual messages only
 
       return {
         text: data.text,

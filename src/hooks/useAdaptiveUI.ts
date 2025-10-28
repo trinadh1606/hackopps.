@@ -102,11 +102,12 @@ export const useAdaptiveUI = (abilityProfile: AbilityProfile): AdaptiveUIConfig 
     case 'BLIND_MUTE':
       return {
         ...config,
-        showTextInput: false,
-        showVoiceInput: true,
-        voiceInputPrimary: true,
-        autoStartVoiceInput: true,
-        autoPlayIncoming: true,
+        showTextInput: true, // Can type with screen reader
+        showVoiceInput: false, // Cannot speak (MUTE)
+        showBrailleInput: true,
+        voiceInputPrimary: false,
+        autoStartVoiceInput: false,
+        autoPlayIncoming: true, // Can hear TTS output
         showVisualIndicators: false,
         simplifiedLayout: true,
         layoutMode: 'audio-first',

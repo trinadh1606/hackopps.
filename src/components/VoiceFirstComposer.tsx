@@ -4,16 +4,22 @@ import { Mic, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { AbilityProfile } from '@/types/abilities';
+import { playMultimodalCue, MULTIMODAL_CUES } from '@/lib/multimodalFeedback';
+import { canHearAudio } from '@/lib/modalityRouter';
+
 interface VoiceFirstComposerProps {
   onSend: (text: string) => void;
   disabled?: boolean;
   autoStart?: boolean;
+  abilityProfile?: AbilityProfile;
 }
 
 export const VoiceFirstComposer = ({
   onSend,
   disabled,
   autoStart = false,
+  abilityProfile,
 }: VoiceFirstComposerProps) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -22,6 +28,9 @@ export const VoiceFirstComposer = ({
   const retryRef = useRef(0);
   const retryTimer = useRef<number | null>(null);
   const { isOnline } = useNetworkStatus();
+  
+  // Check if user can hear audio
+  const canUseAudio = !abilityProfile || canHearAudio(abilityProfile);
   // Auto-start voice recording on mount if enabled
   useEffect(() => {
     if (autoStart && !hasAutoStarted.current && !disabled) {
@@ -29,14 +38,17 @@ export const VoiceFirstComposer = ({
       setTimeout(() => {
         startListening();
         
-        // Announce that recording started
-        if ('speechSynthesis' in window) {
+        // Announce that recording started - use TTS for hearing users, haptics for deaf-blind
+        if (canUseAudio && 'speechSynthesis' in window) {
           const utterance = new SpeechSynthesisUtterance(
             "Recording started. Speak your message. Say 'send' when done, or 'cancel' to clear."
           );
           utterance.volume = 0.8;
           utterance.rate = 1.0;
           window.speechSynthesis.speak(utterance);
+        } else {
+          // Use haptic feedback for deaf-blind users
+          playMultimodalCue(MULTIMODAL_CUES.buttonPress, false, true, 0.8);
         }
       }, 500);
     }

@@ -6,6 +6,8 @@ import { useTTS } from '@/hooks/useTTS';
 import { playHapticPattern } from '@/lib/haptics';
 import { getHapticForMessage } from '@/lib/hapticSentiment';
 import { playMultimodalCue, MULTIMODAL_CUES } from '@/lib/multimodalFeedback';
+import { canHearAudio } from '@/lib/modalityRouter';
+import { AbilityProfile } from '@/types/abilities';
 
 interface MessagePlayerProps {
   text: string;
@@ -15,6 +17,7 @@ interface MessagePlayerProps {
   autoPlay?: boolean;
   audioEnabled?: boolean;
   hapticEnabled?: boolean;
+  abilityProfile?: AbilityProfile;
   ttsOptions?: {
     rate?: number;
     pitch?: number;
@@ -32,8 +35,11 @@ export const MessagePlayer = ({
   autoPlay = false,
   audioEnabled = true,
   hapticEnabled = true,
+  abilityProfile,
   ttsOptions = { rate: 1.0, pitch: 1.0, volume: 1.0, announceSender: true, announceTimestamp: false },
 }: MessagePlayerProps) => {
+  // Disable audio for DEAF users
+  const canPlayAudio = !abilityProfile || canHearAudio(abilityProfile);
   const { speak, pause, resume, stop, speaking } = useTTS();
   const [speed, setSpeed] = useState([ttsOptions.rate || 1.0]);
   const [hapticStrength, setHapticStrength] = useState([0.8]);
@@ -52,14 +58,16 @@ export const MessagePlayer = ({
       if (audioEnabled || hapticEnabled) {
         await playMultimodalCue(
           MULTIMODAL_CUES.messageReceived,
-          audioEnabled,
+          audioEnabled && canPlayAudio,
           hapticEnabled,
           hapticStrength[0]
         );
       }
 
-      // Speak the message
-      speak(text, { ...ttsOptions, rate: speed[0] }, senderName, timestamp);
+      // Speak the message - only if user can hear
+      if (canPlayAudio) {
+        speak(text, { ...ttsOptions, rate: speed[0] }, senderName, timestamp);
+      }
 
       // Play haptic pattern
       if (hapticEnabled) {

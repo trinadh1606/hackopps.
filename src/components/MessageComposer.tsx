@@ -9,6 +9,7 @@ import { BrailleChordPad } from './BrailleChordPad';
 import { VoiceFirstComposer } from './VoiceFirstComposer';
 import { useAdaptiveUI } from '@/hooks/useAdaptiveUI';
 import { AbilityProfile } from '@/types/abilities';
+import { canUseVoiceInput } from '@/lib/modalityRouter';
 
 interface MessageComposerProps {
   onSend: (text: string) => void;
@@ -87,11 +88,12 @@ export const MessageComposer = ({
 
   // Auto-open Braille for DEAF_BLIND users
   const shouldShowInlineBraille = abilityProfile === 'DEAF_BLIND' || abilityProfile === 'DEAF_BLIND_MUTE';
-  const showVoiceInput = abilityProfile === 'BLIND' || abilityProfile === 'MUTE' || abilityProfile === 'BLIND_MUTE';
+  // Only BLIND and DEAF can speak (use voice input)
+  const showVoiceInput = canUseVoiceInput(abilityProfile as AbilityProfile);
 
-  // Voice-first layout for BLIND_MUTE
-  if (uiConfig.voiceInputPrimary && abilityProfile === 'BLIND_MUTE') {
-    return <VoiceFirstComposer onSend={onSend} disabled={disabled} autoStart={uiConfig.autoStartVoiceInput} />;
+  // Voice-first layout for BLIND users only (not BLIND_MUTE)
+  if (uiConfig.voiceInputPrimary && abilityProfile === 'BLIND') {
+    return <VoiceFirstComposer onSend={onSend} disabled={disabled} autoStart={uiConfig.autoStartVoiceInput} abilityProfile={abilityProfile as AbilityProfile} />;
   }
 
   return (
