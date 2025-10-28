@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Mic, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 interface VoiceFirstComposerProps {
   onSend: (text: string) => void;
   disabled?: boolean;
@@ -19,7 +19,9 @@ export const VoiceFirstComposer = ({
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef<any>(null);
   const hasAutoStarted = useRef(false);
-
+  const retryRef = useRef(0);
+  const retryTimer = useRef<number | null>(null);
+  const { isOnline } = useNetworkStatus();
   // Auto-start voice recording on mount if enabled
   useEffect(() => {
     if (autoStart && !hasAutoStarted.current && !disabled) {
@@ -83,6 +85,18 @@ export const VoiceFirstComposer = ({
 
     recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
+
+      // Retry on transient network errors if we're online
+      if (event.error === 'network' && isOnline && retryRef.current < 2) {
+        retryRef.current += 1;
+        toast('Network issue detected. Retrying…');
+        try { recognition.stop(); } catch {}
+        setTimeout(() => {
+          try { recognition.start(); } catch (e) { console.error('Retry start failed', e); }
+        }, 800);
+        return;
+      }
+
       setIsListening(false);
       
       // Provide specific error messages based on error type

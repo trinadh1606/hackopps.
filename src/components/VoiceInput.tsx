@@ -4,7 +4,7 @@ import { Mic, MicOff } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { playAudioCue, AUDIO_CUES } from '@/lib/audio';
 import { playMultimodalCue, MULTIMODAL_CUES } from '@/lib/multimodalFeedback';
-
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 interface VoiceInputProps {
   onTranscript: (text: string) => void;
   disabled?: boolean;
@@ -13,7 +13,8 @@ interface VoiceInputProps {
 export const VoiceInput = ({ onTranscript, disabled }: VoiceInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
-
+  const retryRef = useRef(0);
+  const { isOnline } = useNetworkStatus();
   const startRecording = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast({
@@ -72,6 +73,18 @@ export const VoiceInput = ({ onTranscript, disabled }: VoiceInputProps) => {
 
     recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
+      
+      // Retry on network error if online and under limit
+      if (event.error === 'network' && isOnline && retryRef.current < 2) {
+        retryRef.current += 1;
+        toast({ title: 'Retrying', description: 'Network issue detected. Retrying…' });
+        try { recognition.stop(); } catch {}
+        setTimeout(() => {
+          try { recognition.start(); } catch (e) { console.error('Retry start failed', e); }
+        }, 800);
+        return;
+      }
+
       setIsRecording(false);
       
       // Provide specific error messages

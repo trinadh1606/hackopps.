@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Message } from '@/types/chat';
 import { AbilityProfile } from '@/types/abilities';
+import { getHapticForMessage } from '@/lib/hapticSentiment';
+import { playHapticPattern } from '@/lib/haptics';
 
 export const useAIResponse = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -43,8 +45,13 @@ export const useAIResponse = () => {
 
       if (insertError) throw insertError;
 
-      // Auto-read AI response for BLIND users
-      if (userProfile.includes('BLIND')) {
+      // Auto-deliver AI response based on user abilities
+      if (userProfile === 'DEAF_BLIND' || userProfile === 'DEAF_BLIND_MUTE') {
+        // For deaf-blind users: use haptic feedback and vibrations
+        const hapticPattern = getHapticForMessage(data.text, 'normal');
+        await playHapticPattern(hapticPattern, 1.0);
+      } else if (userProfile.includes('BLIND')) {
+        // For blind users: use voice
         const utterance = new SpeechSynthesisUtterance(data.text);
         utterance.rate = 1.0;
         utterance.volume = 1.0;

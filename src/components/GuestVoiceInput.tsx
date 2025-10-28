@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, Send, X } from 'lucide-react';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface GuestVoiceInputProps {
   onSendMessage: (text: string) => void;
@@ -11,7 +12,9 @@ export const GuestVoiceInput = ({ onSendMessage, disabled }: GuestVoiceInputProp
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [recognition, setRecognition] = useState<any>(null);
-
+  const retryRef = useRef(0);
+  const retryTimer = useRef<number | null>(null);
+  const { isOnline } = useNetworkStatus();
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
@@ -50,6 +53,18 @@ export const GuestVoiceInput = ({ onSendMessage, disabled }: GuestVoiceInputProp
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         
+        // Retry on transient network errors if we're online
+        if (event.error === 'network' && isOnline && retryRef.current < 2) {
+          retryRef.current += 1;
+          const announcement = new SpeechSynthesisUtterance('Network issue detected. Retrying.');
+          window.speechSynthesis.speak(announcement);
+          try { recognitionInstance.stop(); } catch {}
+          retryTimer.current = window.setTimeout(() => {
+            try { recognitionInstance.start(); } catch (e) { console.error('Retry start failed', e); }
+          }, 800);
+          return;
+        }
+        
         // Announce error to user
         if ('speechSynthesis' in window) {
           let errorMessage = 'Error occurred';
@@ -85,14 +100,22 @@ export const GuestVoiceInput = ({ onSendMessage, disabled }: GuestVoiceInputProp
       if (recognition) {
         recognition.stop();
       }
+      if (retryTimer.current) {
+        clearTimeout(retryTimer.current);
+      }
     };
   }, []);
 
   const startListening = () => {
-    if (recognition && !isListening) {
-      setTranscript('');
-      recognition.start();
+    if (!recognition || isListening) return;
+    if (!isOnline) {
+      const announcement = new SpeechSynthesisUtterance('You are offline. Please connect to the internet.');
+      window.speechSynthesis.speak(announcement);
+      return;
     }
+    retryRef.current = 0;
+    setTranscript('');
+    recognition.start();
   };
 
   const stopListening = () => {
